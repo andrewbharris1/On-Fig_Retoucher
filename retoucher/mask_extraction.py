@@ -8,7 +8,7 @@ converting them into binary masks for inpainting operations.
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 from .config import Config
 
@@ -30,7 +30,7 @@ class MaskExtractor:
         """
         self.config = config or Config()
 
-    def extract_mask(self, retouch_note_path: str | Path) -> np.ndarray:
+    def extract_mask(self, retouch_note_path: Union[str, Path]) -> np.ndarray:
         """
         Extract a binary mask from a retouch note image.
 
@@ -115,7 +115,7 @@ class MaskExtractor:
 
     def extract_mask_with_metadata(
         self,
-        retouch_note_path: str | Path
+        retouch_note_path: Union[str, Path]
     ) -> Tuple[np.ndarray, dict]:
         """
         Extract mask and return metadata about the detected regions.
@@ -197,7 +197,7 @@ class MaskExtractor:
     def save_mask(
         self,
         mask: np.ndarray,
-        output_path: str | Path,
+        output_path: Union[str, Path],
         as_alpha: bool = False
     ) -> Path:
         """
@@ -226,9 +226,9 @@ class MaskExtractor:
 
     def visualize_mask_overlay(
         self,
-        original_path: str | Path,
+        original_path: Union[str, Path],
         mask: np.ndarray,
-        output_path: Optional[str | Path] = None,
+        output_path: Optional[Union[str, Path]] = None,
         color: Tuple[int, int, int] = (0, 255, 0),  # Green
         opacity: float = 0.5
     ) -> np.ndarray:

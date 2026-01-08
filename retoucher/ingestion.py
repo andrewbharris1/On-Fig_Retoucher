@@ -10,7 +10,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from .config import Config
 
@@ -86,7 +86,7 @@ class ImageIngestion:
         """
         self.config = config or Config()
 
-    def scan_directory(self, directory: str | Path) -> Dict[str, SKUGroup]:
+    def scan_directory(self, directory: Union[str, Path]) -> Dict[str, SKUGroup]:
         """
         Scan a directory and group images by SKU.
 
@@ -146,7 +146,7 @@ class ImageIngestion:
             for sku, pairs in sku_groups.items()
         }
 
-    def get_sku_list(self, directory: str | Path) -> List[str]:
+    def get_sku_list(self, directory: Union[str, Path]) -> List[str]:
         """
         Get a list of all SKU codes found in a directory.
 
@@ -161,7 +161,7 @@ class ImageIngestion:
 
     def get_processing_queue(
         self,
-        directory: str | Path,
+        directory: Union[str, Path],
         require_retouch_note: bool = True
     ) -> List[ImagePair]:
         """
@@ -185,7 +185,7 @@ class ImageIngestion:
 
         return queue
 
-    def validate_directory(self, directory: str | Path) -> Dict[str, any]:
+    def validate_directory(self, directory: Union[str, Path]) -> Dict[str, any]:
         """
         Validate a directory and return statistics about its contents.
 

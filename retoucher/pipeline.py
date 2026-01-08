@@ -12,7 +12,7 @@ This module brings together all components:
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Union
 
 import cv2
 import numpy as np
@@ -141,7 +141,7 @@ class RetouchingPipeline:
         if self._progress_callback:
             self._progress_callback(message, current, total)
 
-    def scan_directory(self, input_dir: str | Path) -> Dict[str, SKUGroup]:
+    def scan_directory(self, input_dir: Union[str, Path]) -> Dict[str, SKUGroup]:
         """
         Scan a directory and return grouped images.
 
@@ -153,7 +153,7 @@ class RetouchingPipeline:
         """
         return self.ingestion.scan_directory(input_dir)
 
-    def validate_directory(self, input_dir: str | Path) -> Dict:
+    def validate_directory(self, input_dir: Union[str, Path]) -> Dict:
         """
         Validate a directory and return statistics.
 
@@ -276,7 +276,7 @@ class RetouchingPipeline:
     def process_sku(
         self,
         sku_group: SKUGroup,
-        output_dir: str | Path,
+        output_dir: Union[str, Path],
         skip_inpainting: bool = False
     ) -> SKUProcessingResult:
         """
@@ -313,8 +313,8 @@ class RetouchingPipeline:
 
     def process_directory(
         self,
-        input_dir: str | Path,
-        output_dir: str | Path,
+        input_dir: Union[str, Path],
+        output_dir: Union[str, Path],
         skip_inpainting: bool = False,
         sku_filter: Optional[List[str]] = None
     ) -> List[SKUProcessingResult]:
@@ -364,9 +364,9 @@ class RetouchingPipeline:
 
     def verify_red_detection(
         self,
-        retouch_note_path: str | Path,
-        original_path: str | Path,
-        output_path: Optional[str | Path] = None
+        retouch_note_path: Union[str, Path],
+        original_path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None
     ) -> Path:
         """
         Create a visualization to verify red circle detection.

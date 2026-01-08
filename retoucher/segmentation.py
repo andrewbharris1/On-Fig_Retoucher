@@ -8,7 +8,7 @@ using the multiply blend mode technique (standard Photoshop approach).
 import cv2
 import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from PIL import Image
 
 try:
@@ -55,7 +55,7 @@ class ModelSegmenter:
 
     def segment_model(
         self,
-        image_path: str | Path,
+        image_path: Union[str, Path],
         return_mask: bool = False
     ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
         """
@@ -278,7 +278,7 @@ class ModelSegmenter:
 
     def process_with_shadow_preservation(
         self,
-        image_path: str | Path,
+        image_path: Union[str, Path],
         canvas_width: int,
         canvas_height: int
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
