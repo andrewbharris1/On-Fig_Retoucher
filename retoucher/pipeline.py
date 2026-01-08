@@ -93,20 +93,38 @@ class RetouchingPipeline:
             **inpainting_kwargs: Additional args for inpainting provider.
         """
         self.config = config or Config()
+        self._inpainting_backend = inpainting_backend
+        self._inpainting_kwargs = inpainting_kwargs
 
-        # Initialize all components
+        # Initialize lightweight components immediately
         self.ingestion = ImageIngestion(self.config)
         self.mask_extractor = MaskExtractor(self.config)
-        self.segmenter = ModelSegmenter(self.config)
         self.geometry = GeometryProcessor(self.config)
-        self.inpainting = InpaintingEngine(
-            self.config,
-            backend=inpainting_backend,
-            **inpainting_kwargs
-        )
+
+        # Lazy-load heavy components (rembg, inpainting APIs)
+        self._segmenter: Optional[ModelSegmenter] = None
+        self._inpainting: Optional[InpaintingEngine] = None
 
         # Progress callback
         self._progress_callback: Optional[Callable] = None
+
+    @property
+    def segmenter(self) -> ModelSegmenter:
+        """Lazy-load the segmenter (requires rembg)."""
+        if self._segmenter is None:
+            self._segmenter = ModelSegmenter(self.config)
+        return self._segmenter
+
+    @property
+    def inpainting(self) -> InpaintingEngine:
+        """Lazy-load the inpainting engine."""
+        if self._inpainting is None:
+            self._inpainting = InpaintingEngine(
+                self.config,
+                backend=self._inpainting_backend,
+                **self._inpainting_kwargs
+            )
+        return self._inpainting
 
     def set_progress_callback(self, callback: Callable[[str, int, int], None]):
         """
