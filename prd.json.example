@@ -1,0 +1,59 @@
+{
+  "name": "Photo Retouching Pipeline Enhancements",
+  "description": "Improvements to the Canada Goose photo retouching pipeline",
+  "branchName": "feature/pipeline-enhancements",
+  "userStories": [
+    {
+      "id": "STORY-001",
+      "title": "Add batch processing progress bar",
+      "description": "Add a progress bar to show batch processing status when processing multiple images",
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Progress bar shows current/total images being processed",
+        "Display estimated time remaining",
+        "Works with both CLI and API usage",
+        "Tests pass for progress tracking"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-002",
+      "title": "Add JSON output format option",
+      "description": "Allow outputting processing results as JSON for automation",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "New --json flag on CLI commands",
+        "JSON output includes: sku, success/fail, error messages, output paths",
+        "Structured for easy parsing by downstream tools",
+        "Tests cover JSON output format"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-003",
+      "title": "Improve red marker detection sensitivity",
+      "description": "Add configurable sensitivity for red marker detection to handle varying image qualities",
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Add --sensitivity flag (low/medium/high) to CLI",
+        "Config class supports sensitivity parameter",
+        "Different HSV ranges for each sensitivity level",
+        "Tests verify detection at each sensitivity level"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-004",
+      "title": "Add dry-run mode",
+      "description": "Allow users to preview what would happen without actually processing images",
+      "priority": 4,
+      "acceptanceCriteria": [
+        "New --dry-run flag on process command",
+        "Lists files that would be processed",
+        "Shows detected markers without inpainting",
+        "No files are modified in dry-run mode"
+      ],
+      "passes": false
+    }
+  ]
+}
