@@ -1,0 +1,241 @@
+{
+  "name": "Floor Effects API",
+  "description": "Add /api/retouch endpoint with explicit floor effects (mirror/shadow) on all background types",
+  "branchName": "feature/floor-effects-api",
+  "userStories": [
+    {
+      "id": "STORY-001",
+      "title": "Create API Request/Response Pydantic Models",
+      "description": "Create retoucher/api_models.py with Pydantic models for the retouch API. Include FloorEffect enum (mirror/shadow), BackgroundType enum (studio/pure_white/custom), RetouchOptions model with floor_effect defaulting to 'mirror', and RetouchRequest/RetouchResponse models.",
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Create new file retoucher/api_models.py",
+        "FloorEffect enum with MIRROR='mirror' and SHADOW='shadow'",
+        "BackgroundType enum with STUDIO, PURE_WHITE, CUSTOM",
+        "RetouchOptions model with floor_effect (default: mirror), background_type (default: studio), background_image_base64 (optional), shadow_opacity (0.6), reflection_opacity (0.3), reflection_fade_height (0.4)",
+        "RetouchRequest model with image_base64 (required) and options (RetouchOptions)",
+        "RetouchResponse model with success, image_base64, error, metadata fields",
+        "All models use Pydantic BaseModel with proper Field descriptions",
+        "python -m py_compile retoucher/api_models.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-002",
+      "title": "Add FastAPI and Pydantic to requirements.txt",
+      "description": "Update requirements.txt to include FastAPI, uvicorn, pydantic, and python-multipart for the API layer.",
+      "priority": 1,
+      "acceptanceCriteria": [
+        "Add fastapi>=0.104.0 to requirements.txt",
+        "Add uvicorn>=0.24.0 to requirements.txt",
+        "Add pydantic>=2.0.0 to requirements.txt",
+        "Add python-multipart>=0.0.6 to requirements.txt",
+        "Existing dependencies remain unchanged"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-003",
+      "title": "Create FloorEffectConfig dataclass",
+      "description": "Create a configuration dataclass in retoucher/floor_effects.py to hold floor effect parameters (reflection_opacity, reflection_fade_height, shadow_opacity, etc). This will be used by the floor effect functions.",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Create new file retoucher/floor_effects.py",
+        "Create FloorEffectConfig dataclass with: reflection_opacity (float, default 0.3), reflection_fade_height (float, default 0.4), reflection_blur_kernel (int, default 3), shadow_opacity (float, default 0.4), shadow_blur (int, default 15), shadow_offset (int, default 5)",
+        "Import numpy and cv2 at top of file",
+        "python -m py_compile retoucher/floor_effects.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-004",
+      "title": "Implement apply_mirror_reflection function",
+      "description": "Implement the mirror/reflection floor effect in retoucher/floor_effects.py. The function takes subject_rgba (RGBA with transparency), background (BGR), and config. It creates a vertically flipped reflection below the subject with gradient fade.",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Function signature: apply_mirror_reflection(subject_rgba: np.ndarray, background: np.ndarray, config: FloorEffectConfig) -> np.ndarray",
+        "Extract alpha channel from subject_rgba",
+        "Find bottom edge of subject (lowest row with alpha > 0)",
+        "Create reflection by flipping subject vertically (cv2.flip with flipCode=0)",
+        "Create linear gradient fade mask (opacity at top, 0 at bottom) with height = subject_height * reflection_fade_height",
+        "Apply reflection to background using alpha blending with gradient mask",
+        "Composite original subject on top of reflection",
+        "Return BGR image (not RGBA)",
+        "Works with any background (studio gray, white, or custom image)",
+        "python -m py_compile retoucher/floor_effects.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-005",
+      "title": "Implement apply_contact_shadow function",
+      "description": "Implement the shadow-only floor effect in retoucher/floor_effects.py. Creates a soft contact shadow below the subject WITHOUT any reflection. The shadow grounds the subject naturally.",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Function signature: apply_contact_shadow(subject_rgba: np.ndarray, background: np.ndarray, config: FloorEffectConfig) -> np.ndarray",
+        "Extract alpha channel and find subject bottom edge",
+        "Create contact shadow by dilating bottom edge of alpha mask",
+        "Apply Gaussian blur to shadow (kernel size from config.shadow_blur)",
+        "Offset shadow slightly below subject (config.shadow_offset pixels)",
+        "Composite shadow onto background using multiply blend mode",
+        "Composite original subject on top",
+        "NO reflection is created - only contact shadow",
+        "Return BGR image",
+        "python -m py_compile retoucher/floor_effects.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-006",
+      "title": "Implement apply_floor_effect router function",
+      "description": "Create the main router function that dispatches to either mirror or shadow effect based on the floor_effect parameter. This function enforces that floor_effect is INDEPENDENT of background_type.",
+      "priority": 2,
+      "acceptanceCriteria": [
+        "Function signature: apply_floor_effect(subject_rgba: np.ndarray, background: np.ndarray, floor_effect: str, config: FloorEffectConfig) -> np.ndarray",
+        "If floor_effect == 'mirror': call apply_mirror_reflection",
+        "If floor_effect == 'shadow': call apply_contact_shadow",
+        "Raise ValueError for unknown floor_effect values",
+        "Add docstring emphasizing floor_effect is independent of background_type",
+        "python -m py_compile retoucher/floor_effects.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-007",
+      "title": "Implement create_background helper function",
+      "description": "Create a helper function in retoucher/floor_effects.py that generates the appropriate background based on BackgroundType. Handles studio gray, pure white, and custom user-provided backgrounds.",
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Function signature: create_background(background_type: str, size: tuple, custom_image_base64: str = None) -> np.ndarray",
+        "If background_type == 'studio': return solid #edeef0 gray (BGR: 240, 238, 237)",
+        "If background_type == 'pure_white': return solid white (255, 255, 255)",
+        "If background_type == 'custom': decode base64 image, resize to match size using INTER_LANCZOS4",
+        "Raise ValueError if custom type but no custom_image_base64 provided",
+        "Raise ValueError for unknown background_type",
+        "Return BGR numpy array with shape (height, width, 3)",
+        "python -m py_compile retoucher/floor_effects.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-008",
+      "title": "Create FastAPI app and /api/retouch endpoint",
+      "description": "Create retoucher/api.py with FastAPI app and POST /api/retouch endpoint. The endpoint accepts RetouchRequest, processes the image through segmentation and floor effects, returns RetouchResponse.",
+      "priority": 3,
+      "acceptanceCriteria": [
+        "Create new file retoucher/api.py",
+        "Import FastAPI, models from api_models, floor effect functions",
+        "Create FastAPI app with title='Photo Retouching API', version='1.0.0'",
+        "POST /api/retouch endpoint with RetouchRequest body, returns RetouchResponse",
+        "Decode input image from base64",
+        "Create background using create_background based on options.background_type",
+        "Segment subject using existing ModelSegmenter from segmentation.py",
+        "Apply floor effect using apply_floor_effect with options.floor_effect",
+        "Encode result to base64 PNG",
+        "Return RetouchResponse with success=True and image_base64",
+        "Catch exceptions and return RetouchResponse with success=False and error message",
+        "python -m py_compile retoucher/api.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-009",
+      "title": "Update retoucher/__init__.py exports",
+      "description": "Update the package __init__.py to export the new API models, floor effect functions, and FastAPI app for easy importing.",
+      "priority": 4,
+      "acceptanceCriteria": [
+        "Export FloorEffect, BackgroundType, RetouchOptions, RetouchRequest, RetouchResponse from api_models",
+        "Export apply_floor_effect, apply_mirror_reflection, apply_contact_shadow, create_background from floor_effects",
+        "Export app from api (the FastAPI instance)",
+        "Existing exports remain unchanged",
+        "python -m py_compile retoucher/__init__.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-010",
+      "title": "Add floor effect parameters to Config dataclass",
+      "description": "Update retoucher/config.py to include floor effect configuration parameters as defaults. These can be overridden at runtime but provide sensible defaults.",
+      "priority": 4,
+      "acceptanceCriteria": [
+        "Add floor_effect: str = 'mirror' to Config dataclass",
+        "Add reflection_opacity: float = 0.3",
+        "Add reflection_fade_height: float = 0.4",
+        "Add reflection_blur_kernel: int = 3",
+        "Add contact_shadow_opacity: float = 0.4",
+        "Add contact_shadow_blur: int = 15",
+        "Add contact_shadow_offset: int = 5",
+        "Existing config fields unchanged",
+        "python -m py_compile retoucher/config.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-011",
+      "title": "Write unit tests for floor effects",
+      "description": "Create tests/test_floor_effects.py with unit tests for mirror reflection, contact shadow, floor effect router, and background creation functions.",
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Create new file tests/test_floor_effects.py",
+        "Test apply_mirror_reflection creates reflection below subject",
+        "Test apply_mirror_reflection works with white background (fades properly)",
+        "Test apply_mirror_reflection works with custom background",
+        "Test apply_contact_shadow creates shadow without reflection",
+        "Test apply_floor_effect routes correctly based on floor_effect param",
+        "Test create_background returns correct colors for studio and pure_white",
+        "Test create_background raises error for custom without image",
+        "pytest tests/test_floor_effects.py -v passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-012",
+      "title": "Write unit tests for API models",
+      "description": "Create tests/test_api_models.py with unit tests validating Pydantic model behavior, defaults, and validation.",
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Create new file tests/test_api_models.py",
+        "Test FloorEffect enum has MIRROR and SHADOW values",
+        "Test BackgroundType enum has STUDIO, PURE_WHITE, CUSTOM values",
+        "Test RetouchOptions defaults floor_effect to 'mirror'",
+        "Test RetouchOptions defaults background_type to 'studio'",
+        "Test RetouchRequest requires image_base64",
+        "Test RetouchOptions validates shadow_opacity between 0.0 and 1.0",
+        "Test RetouchOptions validates reflection_opacity between 0.0 and 1.0",
+        "pytest tests/test_api_models.py -v passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-013",
+      "title": "Add API server run command to main.py",
+      "description": "Add a 'serve' command to main.py CLI that starts the FastAPI server using uvicorn. This allows running the API with: python main.py serve",
+      "priority": 5,
+      "acceptanceCriteria": [
+        "Add 'serve' subcommand to argparse in main.py",
+        "serve command accepts --host (default 0.0.0.0) and --port (default 8000)",
+        "serve command starts uvicorn with the FastAPI app",
+        "python main.py serve --help shows usage",
+        "python main.py --help shows serve as available command",
+        "Existing commands (process, validate, verify-mask) unchanged",
+        "python -m py_compile main.py passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "STORY-014",
+      "title": "Run all tests and verify integration",
+      "description": "Final verification story: run all tests, verify all modules compile, and ensure the API endpoint works end-to-end.",
+      "priority": 6,
+      "acceptanceCriteria": [
+        "pytest tests/ -v passes with all tests green",
+        "python -m py_compile main.py retoucher/*.py passes",
+        "python main.py --help works",
+        "python main.py serve --help works",
+        "Import test: python -c 'from retoucher import app, FloorEffect, apply_floor_effect' works",
+        "No import errors or circular dependencies"
+      ],
+      "passes": false
+    }
+  ]
+}
